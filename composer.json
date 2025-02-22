@@ -1,0 +1,28 @@
+{
+  "name": "ody/swoole",
+  "description": "description",
+  "minimum-stability": "dev",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Ilyas Deckers",
+      "email": "deckersilyas@gmail.com"
+    }
+  ],
+  "require": {
+    "php": ">=8.3",
+    "ext-inotify": "*",
+    "psr/http-message": "^2.0",
+    "psr/http-server-handler": "^1.0",
+    "laminas/laminas-diactoros": "^3.5",
+    "nesbot/carbon": "^3.8"
+  },
+  "require-dev": {
+    "swoole/ide-helper": "^6.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "Ody\\Swoole\\": "src/"
+    }
+  }
+}
