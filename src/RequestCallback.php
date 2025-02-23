@@ -11,6 +11,8 @@ use Swoole\Http\Request;
 use Swoole\Http\Response;
 use function Laminas\Diactoros\normalizeUploadedFiles;
 
+use Symfony\Component\Console\Style\SymfonyStyle;
+
 final class RequestCallback
 {
     private RequestHandlerInterface $handler;
@@ -40,7 +42,10 @@ final class RequestCallback
     private function createServerRequest(Request $swooleRequest): ServerRequestInterface
     {
         $time = Carbon::parse($swooleRequest->server['request_time_float']);
-        echo "{$time} - \033[31m{$swooleRequest->getMethod()}\033[0m - {$swooleRequest->server['remote_addr']}:{$swooleRequest->server['server_port']}{$swooleRequest->server['request_uri']}\n";
+
+        // Print request to terminal
+        echo "   \033[1mINFO\033[0m  {$time} - \033[1m{$swooleRequest->getMethod()}\033[0m - {$swooleRequest->server['remote_addr']}:{$swooleRequest->server['server_port']}{$swooleRequest->server['request_uri']}\n";
+
         /** @var array<string, string> $server */
         $server = $swooleRequest->server;
 
