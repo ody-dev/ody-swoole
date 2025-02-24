@@ -1,7 +1,6 @@
 <?php
 namespace Ody\Swoole;
 
-use Ody\Swoole\CallableRequestHandler;
 use Carbon\Carbon;
 use Laminas\Diactoros\ServerRequest;
 use Psr\Http\Message\ResponseInterface;
@@ -10,8 +9,6 @@ use Psr\Http\Server\RequestHandlerInterface;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
 use function Laminas\Diactoros\normalizeUploadedFiles;
-
-use Symfony\Component\Console\Style\SymfonyStyle;
 
 final class RequestCallback
 {
@@ -35,6 +32,11 @@ final class RequestCallback
     }
 
     public function __invoke(Request $request, Response $response): void
+    {
+        $this->emit($this->handler->handle($this->createServerRequest($request)), $response);
+    }
+
+    public function handle(Request $request, Response $response): void
     {
         $this->emit($this->handler->handle($this->createServerRequest($request)), $response);
     }
