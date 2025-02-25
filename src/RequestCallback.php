@@ -15,25 +15,10 @@ final class RequestCallback
     private RequestHandlerInterface $handler;
     private RequestCallbackOptions $options;
 
-    /**
-     * @param callable(ServerRequestInterface):ResponseInterface $callable
-     * @param RequestCallbackOptions|null $options
-     * @return static
-     */
-    public static function fromCallable(callable $callable, ?RequestCallbackOptions $options = null): self
-    {
-        return new self(new CallableRequestHandler($callable), $options);
-    }
-
     public function __construct(RequestHandlerInterface $handler, ?RequestCallbackOptions $options = null)
     {
         $this->handler = $handler;
         $this->options = $options ?? new RequestCallbackOptions();
-    }
-
-    public function __invoke(Request $request, Response $response): void
-    {
-        $this->emit($this->handler->handle($this->createServerRequest($request)), $response);
     }
 
     public function handle(Request $request, Response $response): void

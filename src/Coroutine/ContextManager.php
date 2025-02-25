@@ -45,8 +45,6 @@ class ContextManager
         } while ($cid !== -1 && $cid !== false);
 
         // The requested context variable and value could not be found
-        return $default ?? throw new InvalidArgumentException(
-            "Could not find `{$key}` in current coroutine context."
-        );
+        return $default;
     }
 }
