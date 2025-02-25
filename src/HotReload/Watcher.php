@@ -9,10 +9,9 @@ class Watcher
 {
     protected array $paths;
 
-    public function __construct(
-        protected readonly Style $io
-    ){
-        $this->paths = config('server.watcher');
+    public function __construct(array $paths = null)
+    {
+        $this->paths = !is_null($paths) ?: config('server.watcher');
     }
 
     public function start(): void
