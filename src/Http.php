@@ -2,9 +2,8 @@
 declare(strict_types=1);
 namespace Ody\Swoole;
 
-use Ody\Core\App;
-use Ody\Core\Console\Style;
 use Ody\Core\Http\Request;
+use Ody\Core\Kernel;
 use Ody\Swoole\Coroutine\ContextManager;
 use Swoole\Coroutine;
 use Swoole\Http\Server;
@@ -18,20 +17,27 @@ class Http
     /**
      * Starts the server
      *
+     * @param bool $daemonize
      * @return void
      */
-    public function start(): void
+    public function start(bool $daemonize = false): void
     {
+        if ($daemonize === true){
+            $this->server->set([
+                'daemonize' => 1
+            ]);
+        }
+
         $this->server->start();
     }
 
     /**
-     * @param App $app
+     * @param Kernel $app
      * @param string $host
      * @param int $port
      * @return Http
      */
-    public function createServer(App $app, string $host, int $port): static
+    public function createServer(Kernel $app, string $host, int $port): static
     {
         \Swoole\Runtime::enableCoroutine(SWOOLE_HOOK_ALL);
         $server = new Server(
@@ -81,8 +87,9 @@ class Http
         $serveState->setWorkerProcessIds($workerIds);
     }
 
-    private function setContext($request): void
+    private function setContext(\Swoole\Http\Request $request): void
     {
+        ContextManager::set('_GET', (array)$request->get);
         ContextManager::set('_GET', (array)$request->get);
         ContextManager::set('_POST', (array)$request->post);
         ContextManager::set('_FILES', (array)$request->files);

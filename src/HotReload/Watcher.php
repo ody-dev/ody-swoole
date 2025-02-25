@@ -60,7 +60,7 @@ class Watcher
                     continue;
                 }
 
-                $this->io->info("{$file->getFilename()} has been changed. server reloaded");
+                echo "   \033[1mINFO\033[0m  {$file->getFilename()} has been changed. server reloaded\n";
 
                 $serverState = ServerState::getInstance();
                 posix_kill($serverState->getManagerProcessId(), SIGUSR1);
