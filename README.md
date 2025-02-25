@@ -1,5 +1,5 @@
-# Ody Swoole
-Run Ody on Swoole HTTP server
+# ody/swoole
+Run ODY framework on a Swoole HTTP server.
 
 ## Usage
 Start a Swoole server
