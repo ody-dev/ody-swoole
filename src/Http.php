@@ -20,8 +20,14 @@ class Http
      *
      * @return void
      */
-    public function start(): void
+    public function start($daemonize = false): void
     {
+        if ($daemonize === true){
+            $this->server->set([
+                'daemonize' => 1
+            ]);
+        }
+
         $this->server->start();
     }
 
