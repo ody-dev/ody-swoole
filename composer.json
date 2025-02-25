@@ -1,7 +1,8 @@
 {
   "name": "ody/swoole",
-  "description": "description",
-  "minimum-stability": "dev",
+  "description": "Swoole HTTP server of ODY framework",
+  "version": "0.0.1",
+  "minimum-stability": "stable",
   "license": "MIT",
   "authors": [
     {
