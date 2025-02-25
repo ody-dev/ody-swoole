@@ -16,9 +16,6 @@ class ContextManager
         $context = Coroutine::getContext();
         // Long way of setting a new context value
         $context[$key] = $value;
-
-        // Short method of setting a new context value, same as above code...
-//        Coroutine::set($context);
     }
 
     // Navigate the coroutine tree and search for the requested key
@@ -46,5 +43,10 @@ class ContextManager
 
         // The requested context variable and value could not be found
         return $default;
+    }
+
+    public function unset(string $key)
+    {
+        Coroutine::getContext(Coroutine::getCid())[$key] = null;
     }
 }
