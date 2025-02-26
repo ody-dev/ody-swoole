@@ -29,8 +29,8 @@ $kernel = Kernel::init();
 WIP
 
 ```php
-\Ody\Swoole\Websockets\Server::init('0.0.0.0', 9502)  // Host & port are nullable, will default to app.websockets config
-    ->createServer()
+\Ody\Swoole\Websockets\Server::init()  
+    ->createServer('0.0.0.0', 9502) // Host & port are nullable, will default to app.websockets config
     ->start();
 ```
 
