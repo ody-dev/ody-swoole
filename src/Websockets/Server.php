@@ -14,8 +14,6 @@ class Server
 {
     private static WsServer $server;
 
-    public static $fds;
-
     public static function init(): self
     {
         return new self();
@@ -28,11 +26,12 @@ class Server
 
     public function createServer(string $host = null, int $port = null): static
     {
-        $this->createFdsTable();
         static::$server = new WsServer(
             $host ?: config('websockets.host'),
             $port ?: config('websockets.port'),
         );
+
+        $this->createFdsTable();
 
         $callbacks = config('websockets.callbacks');
         foreach ($callbacks as $event => $callback) {
@@ -114,29 +113,29 @@ class Server
     {
         $fd = $request->fd;
         $clientName = sprintf("Client-%'.06d\n", $request->fd);
-        static::$fds->set((string) $fd, [
+        static::$server->table->set((string) $fd, [
             'fd' => $fd,
             'name' => sprintf($clientName)
         ]);
-        echo "Connection <{$fd}> open by {$clientName}. Total connections: " . static::$fds->count() . "\n";
+        echo "Connection <{$fd}> open by {$clientName}. Total connections: " . static::$server->table->count() . "\n";
     }
 
     public static function onClose(WsServer $server, $fd): void
     {
-        static::$fds->del((string) $fd);
-        echo "Connection close: {$fd}, total connections: " . static::$fds->count();
+        static::$server->table->del((string) $fd);
+        echo "Connection close: {$fd}, total connections: " . static::$server->table->count();
     }
 
     public static function onDisconnect(WsServer $server, int $fd): void
     {
-        static::$fds->del((string) $fd);
-        echo "Disconnect: {$fd}, total connections: " . static::$fds->count() . "\n";
+        static::$server->table->del((string) $fd);
+        echo "Disconnect: {$fd}, total connections: " . static::$server->table->count() . "\n";
     }
 
     public static function onMessage (WsServer $server, Frame $frame): void
     {
         echo "onMessage";
-        $sender = static::$fds->get(strval($frame->fd), "name");
+        $sender = static::$server->table->get(strval($frame->fd), "name");
         echo "Received from " . $sender . ", message: {$frame->data}" . PHP_EOL;
     }
 
@@ -148,7 +147,7 @@ class Server
         $fds->column('name', Table::TYPE_STRING, 16);
         $fds->create();
 
-        static::$fds = $fds;
+        static::$server->table = $fds;
     }
 
     private function validateHandshake($request, $response): void
