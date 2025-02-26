@@ -2,6 +2,7 @@
 declare(strict_types=1);
 namespace Ody\Swoole\Websockets;
 
+use Ody\Swoole\Coroutine\ContextManager;
 use Swoole\Http\Response;
 use Swoole\WebSocket\Frame;
 use Swoole\Websocket\Server as WsServer;
@@ -11,19 +12,9 @@ use Swoole\Table;
 // https://dev.to/robertobutti/websocket-with-php-4k2c
 class Server
 {
-    private WsServer $server;
+    private static WsServer $server;
 
-    public function __construct()
-    {
-        $this->server = new WsServer(
-            config("websocket.host") ?: '0.0.0.0',
-            config("websocket.port") ?: '9502',
-        );
-
-        // Create an in memory table to track
-        // active connections
-        $this->createFdsTable();
-    }
+    public static $fds;
 
     public static function init(): self
     {
@@ -32,16 +23,21 @@ class Server
 
     public function start(bool $daemonize = false): void
     {
-        $this->server->start();
+        static::$server->start();
     }
 
-    public function createServer()
+    public function createServer(string $host = null, int $port = null): static
     {
-        $this->server->on('request', [$this, 'onRequest']);
-        $this->server->on('handshake', [$this, 'onHandshake']);
-        $this->server->on('message', [$this, 'onMessage']);
-        $this->server->on('close', [$this, 'onClose']);
-        $this->server->on('disconnect', [$this, 'onDisconnect']);
+        $this->createFdsTable();
+        static::$server = new WsServer(
+            $host ?: config('websockets.host'),
+            $port ?: config('websockets.port'),
+        );
+
+        $callbacks = config('websockets.callbacks');
+        foreach ($callbacks as $event => $callback) {
+            static::$server->on($event, [$callback[0], $callback[1]]);
+        }
 
         return $this;
     }
@@ -53,56 +49,94 @@ class Server
      *
      * https://openswoole.com/docs/modules/swoole-websocket-server-on-request
      */
-    public function onRequest(Request $request): void
+    public static function onRequest(Request $request,  Response $response): void
     {
-        foreach($this->server->connections as $fd)
+        // Handle incoming requests
+        // TODO: Implement routes
+
+        echo "Received request:\n";
+        foreach(static::$server->connections as $fd)
         {
             // Validate a correct WebSocket connection otherwise a push may fail
-            if($this->server->isEstablished($fd))
+            if(static::$server->isEstablished($fd))
             {
                 $clientName = sprintf("Client-%'.06d\n", $fd);
                 echo "Pushing event to $clientName...\n";
-                $this->server->push($fd, 'From request to clients');
+                static::$server->push($fd, json_encode(['key' => 'value']));
             }
         }
     }
 
-    public function onHandshake(Request $request, Response $response): bool
+    public static function onHandshake(Request $request, Response $response): bool
     {
-        $this->validateHandshake($request, $response);
+        echo "onHandshake \n";
+        $key = $request->header['sec-websocket-key'] ?? '';
+
+        if (!preg_match('#^[+/0-9A-Za-z]{21}[AQgw]==$#', $key)) {
+            echo "Handshake failed (1)\n";
+            $response->end();
+            return false;
+        }
+
+        if (strlen(base64_decode($key)) !== 16) {
+            $response->end();
+            echo "Handshake failed (2)\n";
+            return false;
+        }
+
+        $response->header('Upgrade', 'websocket');
+        $response->header('Connection', 'Upgrade');
+        $response->header(
+            'Sec-WebSocket-Accept',
+            base64_encode(sha1($key . '258EAFA5-E914-47DA-95CA-C5AB0DC85B11', true))
+        );
+        $response->header('Sec-WebSocket-Version', '13');
+
+        $protocol = $request->header['sec-websocket-protocol'] ?? null;
+
+        if ($protocol !== null) {
+            $response->header('Sec-WebSocket-Protocol', $protocol);
+        }
+
+        $response->status(101);
+        $response->end();
+        echo "Handshake done\n";
 
         \Swoole\Event::defer(function () use ($request, $response) {
             echo "Client connected\n";
-            $this->onOpen($request, $response);
+            self::onOpen($request, $response);
         });
 
         return true;
     }
 
-    public function onOpen(Request $request, Response $response)
+    public static function onOpen(Request $request, Response $response): void
     {
         $fd = $request->fd;
         $clientName = sprintf("Client-%'.06d\n", $request->fd);
-        $this->fds->set((string) $fd, [
+        static::$fds->set((string) $fd, [
             'fd' => $fd,
             'name' => sprintf($clientName)
         ]);
-        echo "Connection <{$fd}> open by {$clientName}. Total connections: " . $this->fds->count() . "\n";
+        echo "Connection <{$fd}> open by {$clientName}. Total connections: " . static::$fds->count() . "\n";
     }
 
-    public function onClose(WsServer $server, $fd) {
-        $this->fds->del((string) $fd);
-        echo "Connection close: {$fd}, total connections: " . $this->fds->count();
-    }
-
-    public function onDisconnect(WsServer $server, int $fd) {
-        $this->fds->del((string)$fd);
-        echo "Disconnect: {$fd}, total connections: " . $this->fds->count() . "\n";
-    }
-
-    public function onMessage (WsServer $server, Frame $frame): void
+    public static function onClose(WsServer $server, $fd): void
     {
-        $sender = $this->fds->get(strval($frame->fd), "name");
+        static::$fds->del((string) $fd);
+        echo "Connection close: {$fd}, total connections: " . static::$fds->count();
+    }
+
+    public static function onDisconnect(WsServer $server, int $fd): void
+    {
+        static::$fds->del((string) $fd);
+        echo "Disconnect: {$fd}, total connections: " . static::$fds->count() . "\n";
+    }
+
+    public static function onMessage (WsServer $server, Frame $frame): void
+    {
+        echo "onMessage";
+        $sender = static::$fds->get(strval($frame->fd), "name");
         echo "Received from " . $sender . ", message: {$frame->data}" . PHP_EOL;
     }
 
@@ -114,7 +148,7 @@ class Server
         $fds->column('name', Table::TYPE_STRING, 16);
         $fds->create();
 
-        $this->fds = $fds;
+        static::$fds = $fds;
     }
 
     private function validateHandshake($request, $response): void
@@ -152,9 +186,3 @@ class Server
         echo "Handshake done\n";
     }
 }
-
-Server::init()
-    ->createServer()
-    ->start();
-
-
