@@ -1,6 +1,13 @@
 # ody/swoole
 Run ODY framework on a Swoole HTTP server.
 
+## TODO/roadmap
+
+- [x] Swool HTTP server
+- [ ] Websockets
+- [ ] Connection pools (MySQL, Redis,...)
+- [ ] Documenation
+
 ## Usage
 Start a Swoole server
 
