@@ -2,12 +2,33 @@
 declare(strict_types=1);
 namespace Ody\Swoole\Websockets;
 
+use Swoole\Http\Response;
+use Swoole\WebSocket\Frame;
+use Swoole\Websocket\Server as WsServer;
+use Swoole\Http\Request;
 use Swoole\Table;
 
 // https://dev.to/robertobutti/websocket-with-php-4k2c
 class Server
 {
-    private $server;
+    private WsServer $server;
+
+    public function __construct()
+    {
+        $this->server = new WsServer(
+            config("websocket.host") ?: '0.0.0.0',
+            config("websocket.port") ?: '9502',
+        );
+
+        // Create an in memory table to track
+        // active connections
+        $this->createFdsTable();
+    }
+
+    public static function init(): self
+    {
+        return new self();
+    }
 
     public function start(bool $daemonize = false): void
     {
@@ -16,122 +37,124 @@ class Server
 
     public function createServer()
     {
-        $fds = $this->createFdsTable();
-
-        $this->server = new \Swoole\Websocket\Server("0.0.0.0", 9502);
-        $this->server->on('open', function (\Swoole\WebSocket\Server $server, $request) use ($fds) {
-            $fd = $request->fd;
-            $clientName = sprintf("Client-%'.06d\n", $request->fd);
-            $fds->set((string) $fd, [
-                'fd' => $fd,
-                'name' => sprintf($clientName)
-            ]);
-            echo "Connection <{$fd}> open by {$clientName}. Total connections: " . $fds->count() . "\n";
-            foreach ($fds as $key => $value) {
-                if ($key == $fd) {
-                    $server->push((int) $request->fd, "Welcome {$clientName}, there are " . $fds->count() . " connections");
-                } else {
-                    $server->push((int) $key, "A new client ({$clientName}) is joining to the party");
-                }
-            }
-        });
-
-        $this->server->on('request', function ($request, $response) {
-            var_dump($request);
-
-            /*
-             * Loop through all the WebSocket connections to
-             * send back a response to all clients. Broadcast
-             * a message back to every WebSocket client.
-             *
-             * https://openswoole.com/docs/modules/swoole-websocket-server-on-request
-             */
-            foreach($this->server->connections as $fd)
-            {
-                // Validate a correct WebSocket connection otherwise a push may fail
-                if($this->server->isEstablished($fd))
-                {
-                    var_dump($fd);
-                    $this->server->push($fd, 'from request');
-                }
-            }
-        });
-
-//        $this->server->on('handshake', function ($request, $response) {
-//            $secWebSocketKey = $request->header['sec-websocket-key'];
-//            $patten          = '#^[+/0-9A-Za-z]{21}[AQgw]==$#';
-//            if (0 === preg_match($patten, $secWebSocketKey) || 16 !== strlen(base64_decode($secWebSocketKey))) {
-//                $response->end();
-//                return false;
-//            }
-//            echo $request->header['sec-websocket-key'] . PHP_EOL;
-//            $key = base64_encode(sha1(
-//                $request->header['sec-websocket-key'] . '258EAFA5-E914-47DA-95CA-C5AB0DC85B11',
-//                true
-//            ));
-//
-//            $headers = [
-//                'Upgrade'               => 'websocket',
-//                'Connection'            => 'Upgrade',
-//                'Sec-WebSocket-Accept'  => $key,
-//                'Sec-WebSocket-Version' => '13',
-//                'Set-Cookie' => 'BIDUPSID=C0B14AA47C188A3F0FF53676502EA0B7; expires=Thu, 31-Dec-37 23:55:55 GMT; max-age=2147483647; path=/; domain=localhost',
-//                'X-asdf' => 'asdf'
-//            ];
-//
-//            // WebSocket connection to 'ws://127.0.0.1:9502/'
-//            // failed: Error during WebSocket handshake:
-//            // Response must not include 'Sec-WebSocket-Protocol' header if not present in request: websocket
-//            if (isset($request->header['sec-websocket-protocol'])) {
-//                $headers['Sec-WebSocket-Protocol'] = $request->header['sec-websocket-protocol'];
-//            }
-//
-//            foreach ($headers as $key => $val) {
-//                $response->header($key, $val);
-//            }
-//
-//            $response->status(101);
-//            $response->end();
-//        });
-
-        $this->server->on('message', function (\Swoole\WebSocket\Server $server, $frame) use ($fds) {
-            $sender = $fds->get(strval($frame->fd), "name");
-            var_dump($sender);
-            echo "Received from " . $sender . ", message: {$frame->data}" . PHP_EOL;
-            foreach ($fds as $key => $value) {
-                if ($key == $frame->fd) {
-                    $server->push((int) $frame->fd, "Message sent");
-                } else {
-                    $server->push((int) $key,  "FROM: {$sender} - MESSAGE: " . $frame->data);
-                }
-            }
-        });
-
-        $this->server->on('close', function ($server, $fd) use ($fds) {
-            $fds->del((string)$fd);
-            echo "Connection close: {$fd}, total connections: " . $fds->count();
-        });
-
-        $this->server->on('Disconnect', function (\Swoole\WebSocket\Server $server, int $fd) use ($fds) {
-            $fds->del((string)$fd);
-            echo "Disconnect: {$fd}, total connections: " . $fds->count() . "\n";
-        });
-
+        $this->server->on('request', [$this, 'onRequest']);
+        $this->server->on('handshake', [$this, 'onHandshake']);
+        $this->server->on('message', [$this, 'onMessage']);
+        $this->server->on('close', [$this, 'onClose']);
+        $this->server->on('disconnect', [$this, 'onDisconnect']);
 
         return $this;
     }
 
-    private function createFdsTable(): Table
+    /*
+     * Loop through all the WebSocket connections to
+     * send back a response to all clients. Broadcast
+     * a message back to every WebSocket client.
+     *
+     * https://openswoole.com/docs/modules/swoole-websocket-server-on-request
+     */
+    public function onRequest(Request $request): void
+    {
+        foreach($this->server->connections as $fd)
+        {
+            // Validate a correct WebSocket connection otherwise a push may fail
+            if($this->server->isEstablished($fd))
+            {
+                $clientName = sprintf("Client-%'.06d\n", $fd);
+                echo "Pushing event to $clientName...\n";
+                $this->server->push($fd, 'From request to clients');
+            }
+        }
+    }
+
+    public function onHandshake(Request $request, Response $response): bool
+    {
+        $this->validateHandshake($request, $response);
+
+        \Swoole\Event::defer(function () use ($request, $response) {
+            echo "Client connected\n";
+            $this->onOpen($request, $response);
+        });
+
+        return true;
+    }
+
+    public function onOpen(Request $request, Response $response)
+    {
+        $fd = $request->fd;
+        $clientName = sprintf("Client-%'.06d\n", $request->fd);
+        $this->fds->set((string) $fd, [
+            'fd' => $fd,
+            'name' => sprintf($clientName)
+        ]);
+        echo "Connection <{$fd}> open by {$clientName}. Total connections: " . $this->fds->count() . "\n";
+    }
+
+    public function onClose(WsServer $server, $fd) {
+        $this->fds->del((string) $fd);
+        echo "Connection close: {$fd}, total connections: " . $this->fds->count();
+    }
+
+    public function onDisconnect(WsServer $server, int $fd) {
+        $this->fds->del((string)$fd);
+        echo "Disconnect: {$fd}, total connections: " . $this->fds->count() . "\n";
+    }
+
+    public function onMessage (WsServer $server, Frame $frame): void
+    {
+        $sender = $this->fds->get(strval($frame->fd), "name");
+        echo "Received from " . $sender . ", message: {$frame->data}" . PHP_EOL;
+    }
+
+
+    private function createFdsTable(): void
     {
         $fds = new Table(1024);
         $fds->column('fd', Table::TYPE_INT, 4);
         $fds->column('name', Table::TYPE_STRING, 16);
         $fds->create();
 
-        return $fds;
+        $this->fds = $fds;
+    }
+
+    private function validateHandshake($request, $response): void
+    {
+        $key = $request->header['sec-websocket-key'] ?? '';
+
+        if (!preg_match('#^[+/0-9A-Za-z]{21}[AQgw]==$#', $key)) {
+            echo "Handshake failed (1)\n";
+            $response->end();
+            return;
+        }
+
+        if (strlen(base64_decode($key)) !== 16) {
+            $response->end();
+            echo "Handshake failed (2)\n";
+            return;
+        }
+
+        $response->header('Upgrade', 'websocket');
+        $response->header('Connection', 'Upgrade');
+        $response->header(
+            'Sec-WebSocket-Accept',
+            base64_encode(sha1($key . '258EAFA5-E914-47DA-95CA-C5AB0DC85B11', true))
+        );
+        $response->header('Sec-WebSocket-Version', '13');
+
+        $protocol = $request->header['sec-websocket-protocol'] ?? null;
+
+        if ($protocol !== null) {
+            $response->header('Sec-WebSocket-Protocol', $protocol);
+        }
+
+        $response->status(101);
+        $response->end();
+        echo "Handshake done\n";
     }
 }
 
-(new Server())->createServer()->start();
+Server::init()
+    ->createServer()
+    ->start();
 
 
