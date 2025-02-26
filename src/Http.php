@@ -17,15 +17,7 @@ class Http
 {
     private Server $server;
 
-    public function __construct(string $host, int $port)
-    {
-        $this->server = new Server(
-            $host,
-            $port,
-            !is_null(config('server.ssl.ssl_cert_file')) && !is_null(config('server.ssl.ssl_key_file')) ? config('server.mode') | SWOOLE_SSL : config('server.mode') ,
-            config('server.sockType')
-        );
-    }
+    public function __construct() {}
 
     /**
      * Starts the server
@@ -45,23 +37,30 @@ class Http
     }
 
     /**
-     * @param Kernel $app
+     * @param Kernel $kernel
      * @return Http
      */
-    public function createServer(Kernel $app): Http
+    public function createServer(Kernel $kernel): Http
     {
-        \Swoole\Runtime::enableCoroutine(SWOOLE_HOOK_ALL);
+        $this->server = new Server(
+            config('server.host'),
+            config('server.port'),
+            !is_null(config('server.ssl.ssl_cert_file')) && !is_null(config('server.ssl.ssl_key_file')) ? config('server.mode') | SWOOLE_SSL : config('server.mode') ,
+            config('server.sockType')
+        );
+
+        // \Swoole\Runtime::enableCoroutine(SWOOLE_HOOK_ALL);
         $this->server->set([
             ...config('server.additional')
         ]);
 
-        $this->server->on('request', function(Request $request, Response $response) use ($app) {
-            Coroutine::create(function() use ($request, $response, $app) {
+        $this->server->on('request', function(Request $request, Response $response) use ($kernel) {
+            Coroutine::create(function() use ($request, $response, $kernel) {
                 // Set global variables in the ContextManager
                 $this->setContext($request);
 
                 // Create the app and handle the request
-                (new RequestCallback($app))->handle($request, $response);
+                (new RequestCallback($kernel))->handle($request, $response);
             });
         });
         $this->server->on('workerStart', [$this, 'onWorkerStart']);
