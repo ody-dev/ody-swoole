@@ -3,13 +3,14 @@ Run ODY framework on a Swoole HTTP server.
 
 ## TODO/roadmap
 
-- [x] Swool HTTP server
+- [x] Swoole HTTP server
 - [ ] Websockets
 - [ ] Connection pools (MySQL, Redis,...)
+- [ ] Cache
 - [ ] Documenation
 
-## Usage
-Start a Swoole server
+## HTTP server
+### Start a HTTP
 
 ```php
 /**
@@ -20,10 +21,17 @@ Start a Swoole server
 $kernel = Kernel::init();
 
 (new Http())->createServer(
-    $kernel,
-    $this->host,
-    $this->port
+    $kernel
 )->start(),
+```
+
+### Websockets
+WIP
+
+```php
+\Ody\Swoole\Websockets\Server::init('0.0.0.0', 9502)  // Host & port are nullable, will default to app.websockets config
+    ->createServer()
+    ->start();
 ```
 
 ### Hot reloading
@@ -63,6 +71,9 @@ ContextManager::get('_GET');
 // Remove a parameter from the coroutine context
 ContextManager::unset('_GET');
 ```
+
+### Cache
+Planned feature
 
 ### Server.php config file
 ```php
@@ -111,5 +122,28 @@ return [
         'composer.lock',
         '.env',
     ] 
+];
+```
+
+### Websockets.php config file
+```php
+<?php
+
+return [
+    'host' => env('WEBSOCKET_HOST', '127.0.0.1'),
+    'port' => env('WEBSOCKET_PORT', 9502),
+    'sock_type' => SWOOLE_SOCK_TCP,
+    /**
+     * Overwrite websocket events with your own callable methods (WIP)
+     */
+    'callbacks' => [
+        Event::ON_HAND_SHAKE => [\Ody\Swoole\Websockets\Server::class, 'onHandShake'],
+        Event::ON_MESSAGE => [\Ody\Swoole\Websockets\Server::class, 'onMessage'],
+        Event::ON_CLOSE => [\Ody\Swoole\Websockets\Server::class, 'onClose'],
+        Event::ON_REQUEST => [\Ody\Swoole\Websockets\Server::class, 'onRequest'],
+    ],
+    "additional" => [
+        "worker_num" => env('APP_WEBSOCKET_WORKER_NUM', cpu_count() * 2),
+    ]
 ];
 ```

@@ -5,6 +5,9 @@ namespace Ody\Swoole;
 use Composer\InstalledVersions;
 use Ody\Core\Exception\PackageNotFoundException;
 
+/**
+ * @psalm-api
+ */
 class Dependencies
 {
     public static function check($io)

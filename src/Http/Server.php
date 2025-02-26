@@ -1,21 +1,24 @@
 <?php
 declare(strict_types=1);
-namespace Ody\Swoole;
+
+namespace Ody\Swoole\Http;
 
 //use Ody\Core\Http\Request;
 use Ody\Core\Kernel;
 use Ody\Swoole\Coroutine\ContextManager;
+use Ody\Swoole\RequestCallback;
+use Ody\Swoole\ServerState;
 use Swoole\Coroutine;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
-use Swoole\Http\Server;
+use Swoole\Http\Server as SwooleHttpServer;
 
 /**
  * @psalm-api
  */
-class Http
+class Server
 {
-    private Server $server;
+    private SwooleHttpServer $server;
 
     public function __construct() {}
 
@@ -38,11 +41,11 @@ class Http
 
     /**
      * @param Kernel $kernel
-     * @return Http
+     * @return Server
      */
-    public function createServer(Kernel $kernel): Http
+    public function createServer(Kernel $kernel): Server
     {
-        $this->server = new Server(
+        $this->server = new SwooleHttpServer(
             config('server.host'),
             config('server.port'),
             !is_null(config('server.ssl.ssl_cert_file')) && !is_null(config('server.ssl.ssl_key_file')) ? config('server.mode') | SWOOLE_SSL : config('server.mode') ,
@@ -68,14 +71,14 @@ class Http
         return $this;
     }
 
-    public function onWorkerStart(Server $server, int $workerId): void
+    public function onWorkerStart(SwooleHttpServer $server, int $workerId): void
     {
         if ($workerId == config('server.additional.worker_num') - 1){
             $this->saveWorkerIds($server);
         }
     }
 
-    protected function saveWorkerIds(Server $server): void
+    protected function saveWorkerIds(SwooleHttpServer $server): void
     {
         $workerIds = [];
         for ($i = 0; $i < config('server.additional.worker_num'); $i++){
