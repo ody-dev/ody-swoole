@@ -4,7 +4,7 @@ namespace Ody\Swoole;
 
 class ServerState
 {
-    protected static self $instance;
+    protected static ?self $instance = null;
     protected readonly string $path;
 
     public function __construct(){
@@ -37,76 +37,121 @@ class ServerState
         ];
     }
 
+    /**
+     * @psalm-api
+     */
     public function setManagerProcessId(int $id): void
     {
         $this->setId('managerProcessId', $id);
     }
 
+    /**
+     * @psalm-api
+     */
     public function setMasterProcessId(int $id): void
     {
         $this->setId('masterProcessId', $id);
     }
 
+    /**
+     * @psalm-api
+     */
     public function setWatcherProcessId(int $id): void
     {
         $this->setId('watcherProcessId', $id);
     }
 
+    /**
+     * @psalm-api
+     */
     public function setFactoryProcessId(int $id): void
     {
         $this->setId('factoryProcessId', $id);
     }
 
+    /**
+     * @psalm-api
+     */
     public function setQueueProcessId(int $id): void
     {
         $this->setId('queueProcessId', $id);
     }
 
+    /**
+     * @psalm-api
+     */
     public function setSchedulingProcessId(int $id): void
     {
         $this->setId('schedulingProcessId', $id);
     }
 
+    /**
+     * @psalm-api
+     */
     public function setWorkerProcessIds(array $ids): void
     {
         $this->setId('workerProcessIds', $ids);
     }
 
+    /**
+     * @psalm-api
+     */
     public function getManagerProcessId(): int|null
     {
         return $this->getInformation()['managerProcessId'];
     }
 
+    /**
+     * @psalm-api
+     */
     public function getMasterProcessId(): int|null
     {
         return $this->getInformation()['masterProcessId'];
     }
 
+    /**
+     * @psalm-api
+     */
     public function getWatcherProcessId(): int|null
     {
         return $this->getInformation()['watcherProcessId'];
     }
 
+    /**
+     * @psalm-api
+     */
     public function getFactoryProcessId(): int|null
     {
         return $this->getInformation()['factoryProcessId'];
     }
 
+    /**
+     * @psalm-api
+     */
     public function getQueueProcessId(): int|null
     {
         return $this->getInformation()['queueProcessId'];
     }
 
+    /**
+     * @psalm-api
+     */
     public function getSchedulingProcessId(): int|null
     {
         return $this->getInformation()['schedulingProcessId'];
     }
 
+    /**
+     * @psalm-api
+     */
     public function getWorkerProcessIds(): array
     {
         return $this->getInformation()['workerProcessIds'];
     }
 
+    /**
+     * @psalm-api
+     */
     protected function setId(string $key, int|array $id): void
     {
         file_put_contents($this->path, json_encode(

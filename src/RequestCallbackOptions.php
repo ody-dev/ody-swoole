@@ -8,10 +8,10 @@ final class RequestCallbackOptions
     private int $responseChunkSize = 2097152; // 2 MB
     private StreamFactoryInterface $streamFactory;
 
-    public static function create(): self
-    {
-        return new self();
-    }
+//    public static function create(): self
+//    {
+//        return new self();
+//    }
 
     public function __construct()
     {
@@ -23,6 +23,9 @@ final class RequestCallbackOptions
         return $this->responseChunkSize;
     }
 
+    /**
+     * @psalm-api
+     */
     public function setResponseChunkSize(int $responseChunkSize): self
     {
         $this->responseChunkSize = $responseChunkSize;
@@ -34,6 +37,9 @@ final class RequestCallbackOptions
         return $this->streamFactory;
     }
 
+    /**
+     * @psalm-api
+     */
     public function setStreamFactory(StreamFactoryInterface $streamFactory): self
     {
         $this->streamFactory = $streamFactory;

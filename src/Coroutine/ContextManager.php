@@ -10,15 +10,16 @@ use Swoole\Coroutine;
  */
 class ContextManager
 {
-    public static function set(string $key, mixed $value)
+    public static function set(string $key, mixed $value): void
     {
         // Get the context object of the current coroutine
         $context = Coroutine::getContext();
-        // Long way of setting a new context value
         $context[$key] = $value;
     }
 
-    // Navigate the coroutine tree and search for the requested key
+    /**
+     * @psalm-api
+     */
     public static function get(string $key, mixed $default = null): mixed
     {
         // Get the current coroutine ID
@@ -45,8 +46,12 @@ class ContextManager
         return $default;
     }
 
+    /**
+     * @psalm-api
+     */
     public function unset(string $key)
     {
-        Coroutine::getContext(Coroutine::getCid())[$key] = null;
+        $context = Coroutine::getContext(Coroutine::getCid());
+        $context[$key] = null;
     }
 }

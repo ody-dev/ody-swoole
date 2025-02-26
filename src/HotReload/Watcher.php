@@ -5,6 +5,9 @@ namespace Ody\Swoole\HotReload;
 use Ody\Swoole\ServerState;
 use Ody\Core\Console\Style;
 
+/**
+ * @psalm-api
+ */
 class Watcher
 {
     protected array $paths;
@@ -28,7 +31,7 @@ class Watcher
         }
     }
 
-    protected function check($dir): void
+    protected function check(string $dir): void
     {
         static $last_mtime;
 

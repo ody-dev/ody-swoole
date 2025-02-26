@@ -2,17 +2,30 @@
 declare(strict_types=1);
 namespace Ody\Swoole;
 
-use Ody\Core\Http\Request;
+//use Ody\Core\Http\Request;
 use Ody\Core\Kernel;
 use Ody\Swoole\Coroutine\ContextManager;
 use Swoole\Coroutine;
+use Swoole\Http\Request;
+use Swoole\Http\Response;
 use Swoole\Http\Server;
 
+/**
+ * @psalm-api
+ */
 class Http
 {
     private Server $server;
 
-    public function __construct() {}
+    public function __construct(string $host, int $port)
+    {
+        $this->server = new Server(
+            $host,
+            $port,
+            !is_null(config('server.ssl.ssl_cert_file')) && !is_null(config('server.ssl.ssl_key_file')) ? config('server.mode') | SWOOLE_SSL : config('server.mode') ,
+            config('server.sockType')
+        );
+    }
 
     /**
      * Starts the server
@@ -33,26 +46,16 @@ class Http
 
     /**
      * @param Kernel $app
-     * @param string $host
-     * @param int $port
      * @return Http
      */
-    public function createServer(Kernel $app, string $host, int $port): static
+    public function createServer(Kernel $app): Http
     {
         \Swoole\Runtime::enableCoroutine(SWOOLE_HOOK_ALL);
-        $server = new Server(
-            $host,
-            $port,
-            !is_null(config('server.ssl.ssl_cert_file')) && !is_null(config('server.ssl.ssl_key_file')) ? config('server.mode') | SWOOLE_SSL : config('server.mode') ,
-            config('server.sockType')
-        );
-
-        $server->set([
-            ...config('server.additional'),
-            ...['enable_coroutine' => true,]
+        $this->server->set([
+            ...config('server.additional')
         ]);
 
-        $server->on('request', function($request, $response) use ($app) {
+        $this->server->on('request', function(Request $request, Response $response) use ($app) {
             Coroutine::create(function() use ($request, $response, $app) {
                 // Set global variables in the ContextManager
                 $this->setContext($request);
@@ -61,8 +64,7 @@ class Http
                 (new RequestCallback($app))->handle($request, $response);
             });
         });
-        $server->on('workerStart', [$this, 'onWorkerStart']);
-        $this->server = $server;
+        $this->server->on('workerStart', [$this, 'onWorkerStart']);
 
         return $this;
     }
@@ -95,6 +97,6 @@ class Http
         ContextManager::set('_FILES', (array)$request->files);
         ContextManager::set('_COOKIE', (array)$request->cookie);
         ContextManager::set('_SERVER', (array)$request->server);
-        ContextManager::set('request', Request::getInstance());
+        ContextManager::set('request', \Ody\Core\Http\Request::getInstance());
     }
 }
