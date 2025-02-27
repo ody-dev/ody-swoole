@@ -59,6 +59,7 @@ class ServerState
     /**
      * @psalm-api
      */
+
     public function setMasterProcessId(int $id): void
     {
         $this->setId('masterProcessId', $id);

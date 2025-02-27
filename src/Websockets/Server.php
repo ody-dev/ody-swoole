@@ -61,7 +61,7 @@ class Server
         }
 
         static::$server->on('workerStart', [$this, 'onWorkerStart']);
-
+      
         return $this;
     }
 
@@ -166,6 +166,7 @@ class Server
     {
         $fd = $request->fd;
         $clientName = sprintf("Client-%'.06d\n", $request->fd);
+
         static::$fds->set((string) $fd, [
             'fd' => $fd,
             'name' => sprintf($clientName)
