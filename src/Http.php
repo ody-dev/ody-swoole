@@ -44,9 +44,9 @@ class Http
     {
         $this->server = new Server(
             config('server.host'),
-            config('server.port'),
+            (int) config('server.port'),
             !is_null(config('server.ssl.ssl_cert_file')) && !is_null(config('server.ssl.ssl_key_file')) ? config('server.mode') | SWOOLE_SSL : config('server.mode') ,
-            config('server.sockType')
+            config('server.sock_type')
         );
 
         // \Swoole\Runtime::enableCoroutine(SWOOLE_HOOK_ALL);
@@ -90,7 +90,6 @@ class Http
 
     private function setContext(\Swoole\Http\Request $request): void
     {
-        ContextManager::set('_GET', (array)$request->get);
         ContextManager::set('_GET', (array)$request->get);
         ContextManager::set('_POST', (array)$request->post);
         ContextManager::set('_FILES', (array)$request->files);

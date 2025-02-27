@@ -19,15 +19,15 @@ class Watcher
 
     public function start(): void
     {
-        while (!httpServerIsRunning()) {
-            sleep(1);
+        while (!httpServerIsRunning() || !websocketServerIsRunning()) {
+            sleep(2);
         }
 
-        while (httpServerIsRunning()){
+        while (httpServerIsRunning() || !websocketServerIsRunning()){
             foreach ($this->paths as $path) {
                 $this->check(base_path($path));
             }
-            sleep(1);
+            sleep(2);
         }
     }
 
@@ -66,8 +66,15 @@ class Watcher
                 echo "   \033[1mINFO\033[0m  {$file->getFilename()} has been changed. server reloaded\n";
 
                 $serverState = ServerState::getInstance();
-                posix_kill($serverState->getManagerProcessId(), SIGUSR1);
-                posix_kill($serverState->getMasterProcessId(), SIGUSR1);
+                if (httpServerIsRunning()) {
+                    posix_kill($serverState->getManagerProcessId(), SIGUSR1);
+                    posix_kill($serverState->getMasterProcessId(), SIGUSR1);
+                }
+
+                if (websocketServerIsRunning()) {
+                    posix_kill($serverState->getWebsocketManagerProcessId(), SIGUSR1);
+                    posix_kill($serverState->getWebsocketManagerProcessId(), SIGUSR1);
+                }
 
                 break;
             }
