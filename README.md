@@ -10,7 +10,7 @@ Run ODY framework on a Swoole HTTP server.
 - [ ] Documenation
 
 ## HTTP server
-### Start a HTTP
+### Start a HTTP server
 
 ```php
 /**
