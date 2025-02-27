@@ -3,7 +3,6 @@ declare(strict_types=1);
 
 namespace Ody\Swoole\Http;
 
-//use Ody\Core\Http\Request;
 use Ody\Core\Kernel;
 use Ody\Swoole\Coroutine\ContextManager;
 use Ody\Swoole\RequestCallback;
@@ -11,74 +10,93 @@ use Ody\Swoole\ServerState;
 use Swoole\Coroutine;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
-use Swoole\Http\Server as SwooleHttpServer;
+use Swoole\Http\Server as SwooleServer;
 
 /**
  * @psalm-api
  */
 class Server
 {
-    private SwooleHttpServer $server;
+    /**
+     * @var SwooleServer
+     */
+    private SwooleServer $server;
+
+    /**
+     * @var Kernel
+     */
+    private Kernel $kernel;
+
 
     public function __construct() {}
 
     /**
      * Starts the server
      *
-     * @param bool $daemonize
      * @return void
      */
-    public function start(bool $daemonize = false): void
+    public function start(): void
     {
-        if ($daemonize === true){
-            $this->server->set([
-                'daemonize' => 1
-            ]);
-        }
-
         $this->server->start();
     }
 
     /**
      * @param Kernel $kernel
+     * @param bool $daemonize
      * @return Server
      */
-    public function createServer(Kernel $kernel): Server
+    public function createServer(Kernel $kernel, bool $daemonize = false): Server
     {
-        $this->server = new SwooleHttpServer(
+        $this->kernel = $kernel;
+        $this->server = new SwooleServer(
             config('server.host'),
             config('server.port'),
-            !is_null(config('server.ssl.ssl_cert_file')) && !is_null(config('server.ssl.ssl_key_file')) ? config('server.mode') | SWOOLE_SSL : config('server.mode') ,
-            config('server.sockType')
+            $this->getSslConfig(),
+            config('server.sock_type')
         );
 
         // \Swoole\Runtime::enableCoroutine(SWOOLE_HOOK_ALL);
-        $this->server->set([
-            ...config('server.additional')
-        ]);
-
-        $this->server->on('request', function(Request $request, Response $response) use ($kernel) {
-            Coroutine::create(function() use ($request, $response, $kernel) {
-                // Set global variables in the ContextManager
-                $this->setContext($request);
-
-                // Create the app and handle the request
-                (new RequestCallback($kernel))->handle($request, $response);
-            });
-        });
+        $this->server->set([...config('server.additional'), 'daemonize' => (int) $daemonize]);
+        $this->server->on('request', [$this, 'onRequest']);
         $this->server->on('workerStart', [$this, 'onWorkerStart']);
 
         return $this;
     }
 
-    public function onWorkerStart(SwooleHttpServer $server, int $workerId): void
+    /**
+     * @param Request $request
+     * @param Response $response
+     * @return void
+     */
+    public function onRequest(Request $request, Response $response): void
+    {
+        Coroutine::create(function() use ($request, $response) {
+            // Set global variables in the ContextManager
+            $this->setContext($request);
+
+            // Create the app and handle the request
+            (new RequestCallback($this->kernel))
+                ->handle($request, $response);
+        });
+    }
+
+    /**
+     * @param SwooleServer $server
+     * @param int $workerId
+     * @return void
+     */
+    public function onWorkerStart(SwooleServer $server, int $workerId): void
     {
         if ($workerId == config('server.additional.worker_num') - 1){
             $this->saveWorkerIds($server);
         }
     }
 
-    protected function saveWorkerIds(SwooleHttpServer $server): void
+    /**
+     * @param SwooleServer $server
+     * @return void
+     */
+    protected function saveWorkerIds(SwooleServer $server): void
     {
         $workerIds = [];
         for ($i = 0; $i < config('server.additional.worker_num'); $i++){
@@ -91,6 +109,10 @@ class Server
         $serveState->setWorkerProcessIds($workerIds);
     }
 
+    /**
+     * @param Request $request
+     * @return void
+     */
     private function setContext(\Swoole\Http\Request $request): void
     {
         ContextManager::set('_GET', (array)$request->get);
@@ -100,5 +122,20 @@ class Server
         ContextManager::set('_COOKIE', (array)$request->cookie);
         ContextManager::set('_SERVER', (array)$request->server);
         ContextManager::set('request', \Ody\Core\Http\Request::getInstance());
+    }
+
+    /**
+     * @return int
+     */
+    private function getSslConfig(): int
+    {
+        if (
+            !is_null(config('server.ssl.ssl_cert_file')) &&
+            !is_null(config('server.ssl.ssl_key_file'))
+        ) {
+            return config('server.mode', SWOOLE_SSL) | SWOOLE_SSL;
+        }
+
+        return config('server.mode');
     }
 }

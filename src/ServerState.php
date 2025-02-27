@@ -4,13 +4,23 @@ namespace Ody\Swoole;
 
 class ServerState
 {
+    /**
+     * @var ServerState|null
+     */
     protected static ?self $instance = null;
+
+    /**
+     * @var string
+     */
     protected readonly string $path;
 
     public function __construct(){
         $this->path = storagePath('serverState.json');
     }
 
+    /**
+     * @return self
+     */
     public static function getInstance(): self
     {
         if (isset(self::$instance)) {
@@ -20,6 +30,9 @@ class ServerState
         return self::$instance = new self();
     }
 
+    /**
+     * @return array
+     */
     public function getInformation(): array
     {
         $data = is_readable($this->path)
@@ -30,9 +43,9 @@ class ServerState
             'masterProcessId' => $data['pIds']['masterProcessId'] ?? null ,
             'managerProcessId' => $data['pIds']['managerProcessId'] ?? null ,
             'watcherProcessId' => $data['pIds']['watcherProcessId'] ?? null ,
-            'factoryProcessId' => $data['pIds']['factoryProcessId'] ?? null ,
-            'queueProcessId' => $data['pIds']['queueProcessId'] ?? null ,
-            'schedulingProcessId' => $data['pIds']['schedulingProcessId'] ?? null ,
+//            'factoryProcessId' => $data['pIds']['factoryProcessId'] ?? null ,
+//            'queueProcessId' => $data['pIds']['queueProcessId'] ?? null ,
+//            'schedulingProcessId' => $data['pIds']['schedulingProcessId'] ?? null ,
             'workerProcessIds' => $data['pIds']['workerProcessIds'] ?? [] ,
             'websocketMasterProcessId' => $data['pIds']['websocketMasterProcessId'] ?? null ,
             'websocketManagerProcessId' => $data['pIds']['websocketManagerProcessId'] ?? null ,
@@ -43,7 +56,7 @@ class ServerState
     /**
      * @psalm-api
      */
-    public function setManagerProcessId(int $id): void
+    public function setManagerProcessId(?int $id): void
     {
         $this->setId('managerProcessId', $id);
     }
@@ -51,7 +64,7 @@ class ServerState
     /**
      * @psalm-api
      */
-    public function setWebsocketManagerProcessId(int $id): void
+    public function setWebsocketManagerProcessId(?int $id): void
     {
         $this->setId('websocketManagerProcessId', $id);
     }
@@ -60,7 +73,7 @@ class ServerState
      * @psalm-api
      */
 
-    public function setMasterProcessId(int $id): void
+    public function setMasterProcessId(?int $id): void
     {
         $this->setId('masterProcessId', $id);
     }
@@ -68,7 +81,7 @@ class ServerState
     /**
      * @psalm-api
      */
-    public function setWebsocketMasterProcessId(int $id): void
+    public function setWebsocketMasterProcessId(?int $id): void
     {
         $this->setId('websocketMasterProcessId', $id);
     }
@@ -76,7 +89,7 @@ class ServerState
     /**
      * @psalm-api
      */
-    public function setWatcherProcessId(int $id): void
+    public function setWatcherProcessId(?int $id): void
     {
         $this->setId('watcherProcessId', $id);
     }
@@ -206,7 +219,7 @@ class ServerState
     /**
      * @psalm-api
      */
-    protected function setId(string $key, int|array $id): void
+    protected function setId(string $key, int|array|null $id): void
     {
         file_put_contents($this->path, json_encode(
             [
@@ -214,5 +227,68 @@ class ServerState
             ],
             JSON_PRETTY_PRINT
         ));
+    }
+
+    public function clearHttpProcessIds(): void
+    {
+        $this->setWorkerProcessIds([]);
+        $this->setMasterProcessId(null);
+        $this->setManagerProcessId(null);
+        $this->setWatcherProcessId(null);
+    }
+
+    public function clearWebsocketProcessIds(): void
+    {
+        $this->setWebsocketWorkerProcessIds([]);
+        $this->setWebsocketMasterProcessId(null);
+        $this->setWebsocketManagerProcessId(null);
+        $this->setWatcherProcessId(null);
+    }
+
+    public function httpServerIsRunning(): bool
+    {
+        $managerProcessId = $this->getManagerProcessId();
+        $masterProcessId = $this->getMasterProcessId();
+        if (
+            !is_null($managerProcessId) &&
+            !is_null($masterProcessId)
+        ){
+            return (
+                posix_kill($managerProcessId, SIG_DFL) &&
+                posix_kill($masterProcessId, SIG_DFL)
+            );
+        }
+
+        return false;
+    }
+
+    public function websocketServerIsRunning(): bool
+    {
+        $websocketManagerProcessId = $this->getWebsocketManagerProcessId();
+        $websocketMasterProcessId = $this->getWebsocketMasterProcessId();
+        if (
+            !is_null($websocketManagerProcessId) &&
+            !is_null($websocketMasterProcessId)
+        ){
+            return (
+                posix_kill($websocketManagerProcessId, SIG_DFL) &&
+                posix_kill($websocketMasterProcessId, SIG_DFL)
+            );
+        }
+
+        return false;
+    }
+
+    /**
+     * @param array $processIds
+     * @return void
+     */
+    public function killProcesses(array $processIds): void
+    {
+        foreach ($processIds as $processId) {
+            if (!is_null($processId) && posix_kill($processId, SIG_DFL)){
+                posix_kill($processId, SIGTERM);
+            }
+        }
     }
 }
