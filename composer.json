@@ -11,15 +11,12 @@
   ],
   "require": {
     "php": ">=8.3",
-    "ext-inotify": "*",
     "psr/http-message": "^2.0",
     "psr/http-server-handler": "^1.0",
     "laminas/laminas-diactoros": "^3.5",
     "nesbot/carbon": "^3.8"
   },
   "require-dev": {
-    "ody/core": "^0.0.1",
-    "ody/ody-skel": "dev-master",
     "swoole/ide-helper": "^6.0",
     "vimeo/psalm": "^5.24",
     "phpstan/phpstan": "^1.11",
