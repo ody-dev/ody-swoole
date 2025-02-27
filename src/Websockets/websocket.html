@@ -12,7 +12,7 @@
         window.onload = connectWebsocket()
 
         function connectWebsocket() {
-            socket = new WebSocket('ws://api_key@127.0.0.1:9502', '123123123');
+            socket = new WebSocket('ws://127.0.0.1:9502', '123123123');
             socket.onmessage = function (event) {
                 append(event.data)
             }
