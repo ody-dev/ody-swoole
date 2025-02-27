@@ -4,18 +4,19 @@ namespace Ody\Swoole\Websockets;
 
 use Ody\Swoole\Coroutine\ContextManager;
 use Ody\Swoole\RateLimiter;
+use Ody\Swoole\ServerState;
 use Swoole\Http\Response;
+use Swoole\Http\Server as SwooleHttpServer;
 use Swoole\WebSocket\Frame;
 use Swoole\Websocket\Server as WsServer;
 use Swoole\Http\Request;
 use Swoole\Table;
 
-// https://dev.to/robertobutti/websocket-with-php-4k2c
 class Server
 {
     private static WsServer $server;
 
-    public static $fds;
+    public static Table $fds;
     private static RateLimiter $rateLimiter;
 
     public static function init(): self
@@ -25,17 +26,29 @@ class Server
 
     public function start(bool $daemonize = false): void
     {
+        if ($daemonize === true){
+            static::$server->set([
+                'daemonize' => 1
+            ]);
+        }
+
         static::$server->start();
     }
 
     public function createServer(string $host = null, int $port = null): static
     {
         $this->createFdsTable();
-        $this->createRatelimiter();
+//        $this->createRatelimiter();
         static::$server = new WsServer(
             $host ?: config('websockets.host'),
-            $port ?: config('websockets.port'),
+            $port ?: (int) config('websockets.port'),
+            !is_null(config('server.ssl.ssl_cert_file')) && !is_null(config('server.ssl.ssl_key_file')) ? config('server.mode') | SWOOLE_SSL : config('server.mode'),
+            config('server.sock_type')
         );
+
+        static::$server->set([
+            ...config('websockets.additional')
+        ]);
 
         static::$server->set([
             'open_websocket_ping_frame' => true,
@@ -46,6 +59,8 @@ class Server
         foreach ($callbacks as $event => $callback) {
             static::$server->on($event, [$callback[0], $callback[1]]);
         }
+
+        static::$server->on('workerStart', [$this, 'onWorkerStart']);
 
         return $this;
     }
@@ -66,6 +81,7 @@ class Server
             $response->status(401);
             $response->end();
         }
+
         foreach(static::$server->connections as $fd)
         {
             // Validate a correct WebSocket connection otherwise a push may fail
@@ -83,22 +99,22 @@ class Server
 
     public static function onHandshake(Request $request, Response $response): bool
     {
-        $ip = $request->server['remote_addr'];
-        if (!empty($request->server['HTTP_X_FORWARDED_FOR'])) {
-            $ip = $request->server['HTTP_X_FORWARDED_FOR'];
-        }
-
-        if(
-            static::$rateLimiter->isRateLimited(
-                $ip,
-                'websocket',
-                25,
-                20)
-        ) {
-            $response->status(429);
-            $response->end();
-            return false;
-        }
+//        $ip = $request->server['remote_addr'];
+//        if (!empty($request->server['HTTP_X_FORWARDED_FOR'])) {
+//            $ip = $request->server['HTTP_X_FORWARDED_FOR'];
+//        }
+//
+//        if(
+//            static::$rateLimiter->isRateLimited(
+//                $ip,
+//                'websocket',
+//                25,
+//                20)
+//        ) {
+//            $response->status(429);
+//            $response->end();
+//            return false;
+//        }
 
         if ($request->header["sec-websocket-protocol"] !== config('websockets.secret_key')) {
             echo "Not authenticated\n";
@@ -166,7 +182,7 @@ class Server
     public static function onDisconnect(WsServer $server, int $fd): void
     {
         static::$fds->del((string) $fd);
-        echo "Disconnect: {$fd}, total connections: " . static::$fds->count() . "\n";
+        echo "Disconnect: {$fd}, total connections: " . static::$fds->count() . "\n\n";
     }
 
     public static function onMessage (WsServer $server, Frame $frame): void
@@ -237,5 +253,25 @@ class Server
     private function createRatelimiter()
     {
         static::$rateLimiter = new RateLimiter();
+    }
+
+    public function onWorkerStart(WsServer $server, int $workerId): void
+    {
+        if ($workerId == config('websockets.additional.worker_num') - 1){
+            $this->saveWorkerIds($server);
+        }
+    }
+
+    protected function saveWorkerIds(WsServer $server): void
+    {
+        $workerIds = [];
+        for ($i = 0; $i < config('websockets.additional.worker_num'); $i++){
+            $workerIds[$i] = $server->getWorkerPid($i);
+        }
+
+        $serveState = ServerState::getInstance();
+        $serveState->setWebsocketMasterProcessId($server->getMasterPid());
+        $serveState->setWebsocketManagerProcessId($server->getManagerPid());
+        $serveState->setWebsocketWorkerProcessIds($workerIds);
     }
 }

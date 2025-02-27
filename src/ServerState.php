@@ -34,6 +34,9 @@ class ServerState
             'queueProcessId' => $data['pIds']['queueProcessId'] ?? null ,
             'schedulingProcessId' => $data['pIds']['schedulingProcessId'] ?? null ,
             'workerProcessIds' => $data['pIds']['workerProcessIds'] ?? [] ,
+            'websocketMasterProcessId' => $data['pIds']['websocketMasterProcessId'] ?? null ,
+            'websocketManagerProcessId' => $data['pIds']['websocketManagerProcessId'] ?? null ,
+            'websocketWorkerProcessIds' => $data['pIds']['websocketWorkerProcessIds'] ?? [] ,
         ];
     }
 
@@ -48,9 +51,25 @@ class ServerState
     /**
      * @psalm-api
      */
+    public function setWebsocketManagerProcessId(int $id): void
+    {
+        $this->setId('websocketManagerProcessId', $id);
+    }
+
+    /**
+     * @psalm-api
+     */
     public function setMasterProcessId(int $id): void
     {
         $this->setId('masterProcessId', $id);
+    }
+
+    /**
+     * @psalm-api
+     */
+    public function setWebsocketMasterProcessId(int $id): void
+    {
+        $this->setId('websocketMasterProcessId', $id);
     }
 
     /**
@@ -96,10 +115,36 @@ class ServerState
     /**
      * @psalm-api
      */
+    public function setWebsocketWorkerProcessIds(array $ids): void
+    {
+        $this->setId('websocketWorkerProcessIds', $ids);
+    }
+
+    /**
+     * @psalm-api
+     */
+    public function getWebsocketManagerProcessId(): int|null
+    {
+        return $this->getInformation()['websocketManagerProcessId'];
+    }
+
+
+    /**
+     * @psalm-api
+     */
     public function getManagerProcessId(): int|null
     {
         return $this->getInformation()['managerProcessId'];
     }
+
+    /**
+     * @psalm-api
+     */
+    public function getWebsocketMasterProcessId(): int|null
+    {
+        return $this->getInformation()['websocketMasterProcessId'];
+    }
+
 
     /**
      * @psalm-api
@@ -145,6 +190,14 @@ class ServerState
      * @psalm-api
      */
     public function getWorkerProcessIds(): array
+    {
+        return $this->getInformation()['workerProcessIds'];
+    }
+
+    /**
+     * @psalm-api
+     */
+    public function getWebsocketWorkerProcessIds(): array
     {
         return $this->getInformation()['workerProcessIds'];
     }
