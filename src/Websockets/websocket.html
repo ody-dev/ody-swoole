@@ -9,26 +9,31 @@
                 "<li>" + text + ";</li>"
             );
         }
-        window.onload = function () {
-            echo_service = new WebSocket('ws://127.0.0.1:9502');
-            echo_service.onmessage = function (event) {
+        window.onload = connectWebsocket()
+
+        function connectWebsocket() {
+            socket = new WebSocket('ws://api_key@127.0.0.1:9502', '123123123');
+            socket.onmessage = function (event) {
                 append(event.data)
             }
-            echo_service.onopen = function () {
+            socket.onopen = function () {
                 append("Connected to WebSocket!");
             }
-            echo_service.onclose = function () {
+            socket.onclose = function () {
                 append("Connection closed");
+
+                setTimeout(connectWebsocket, 20000)
+
             }
-            echo_service.onerror = function () {
-                append("Error happens");
+            socket.onerror = function () {
+                append("Error happened");
             }
         }
 
         function sendMessage(event) {
             console.log(event)
             let message = document.getElementById("message").value;
-            echo_service.send(message);
+            socket.send(message);
         }
 
     </script>

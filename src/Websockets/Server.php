@@ -3,6 +3,7 @@ declare(strict_types=1);
 namespace Ody\Swoole\Websockets;
 
 use Ody\Swoole\Coroutine\ContextManager;
+use Ody\Swoole\RateLimiter;
 use Swoole\Http\Response;
 use Swoole\WebSocket\Frame;
 use Swoole\Websocket\Server as WsServer;
@@ -15,6 +16,7 @@ class Server
     private static WsServer $server;
 
     public static $fds;
+    private static RateLimiter $rateLimiter;
 
     public static function init(): self
     {
@@ -29,10 +31,16 @@ class Server
     public function createServer(string $host = null, int $port = null): static
     {
         $this->createFdsTable();
+        $this->createRatelimiter();
         static::$server = new WsServer(
             $host ?: config('websockets.host'),
             $port ?: config('websockets.port'),
         );
+
+        static::$server->set([
+            'open_websocket_ping_frame' => true,
+            'open_websocket_pong_frame' => true,
+        ]);
 
         $callbacks = config('websockets.callbacks');
         foreach ($callbacks as $event => $callback) {
@@ -53,8 +61,11 @@ class Server
     {
         // Handle incoming requests
         // TODO: Implement routes
-
-        echo "Received request:\n";
+        echo "Received request from broadcasting channel.\n";
+        if ($request->header["x-api-key"] !== config('websockets.secret_key')) {
+            $response->status(401);
+            $response->end();
+        }
         foreach(static::$server->connections as $fd)
         {
             // Validate a correct WebSocket connection otherwise a push may fail
@@ -62,16 +73,41 @@ class Server
             {
                 $clientName = sprintf("Client-%'.06d\n", $fd);
                 echo "Pushing event to $clientName...\n";
-                static::$server->push($fd, json_encode(['key' => 'value']));
+                static::$server->push($fd, $request->getContent());
             }
         }
+
+        $response->status(200);
+        $response->end();
     }
 
     public static function onHandshake(Request $request, Response $response): bool
     {
-        echo "onHandshake \n";
-        $key = $request->header['sec-websocket-key'] ?? '';
+        $ip = $request->server['remote_addr'];
+        if (!empty($request->server['HTTP_X_FORWARDED_FOR'])) {
+            $ip = $request->server['HTTP_X_FORWARDED_FOR'];
+        }
 
+        if(
+            static::$rateLimiter->isRateLimited(
+                $ip,
+                'websocket',
+                25,
+                20)
+        ) {
+            $response->status(429);
+            $response->end();
+            return false;
+        }
+
+        if ($request->header["sec-websocket-protocol"] !== config('websockets.secret_key')) {
+            echo "Not authenticated\n";
+            $response->status(401);
+            $response->end();
+            return false;
+        }
+
+        $key = $request->header['sec-websocket-key'] ?? '';
         if (!preg_match('#^[+/0-9A-Za-z]{21}[AQgw]==$#', $key)) {
             echo "Handshake failed (1)\n";
             $response->end();
@@ -124,7 +160,7 @@ class Server
     public static function onClose(WsServer $server, $fd): void
     {
         static::$fds->del((string) $fd);
-        echo "Connection close: {$fd}, total connections: " . static::$fds->count();
+        echo "Connection close: {$fd}, total connections: " . static::$fds->count() . PHP_EOL;
     }
 
     public static function onDisconnect(WsServer $server, int $fd): void
@@ -135,7 +171,19 @@ class Server
 
     public static function onMessage (WsServer $server, Frame $frame): void
     {
-        echo "onMessage";
+        // Check for a ping event using the OpCode
+        if($frame->opcode === WEBSOCKET_OPCODE_PING)
+        {
+            echo "Ping frame received: Code {$frame->opcode}\n";
+            $pongFrame = new Frame;
+            $pongFrame->opcode = WEBSOCKET_OPCODE_PONG;
+            $pongFrame->finish = true;
+            $pongFrame->data = 'hello';
+
+            // Send back a pong to the client
+            $server->push($frame->fd, $pongFrame);
+        }
+
         $sender = static::$fds->get(strval($frame->fd), "name");
         echo "Received from " . $sender . ", message: {$frame->data}" . PHP_EOL;
     }
@@ -184,5 +232,10 @@ class Server
         $response->status(101);
         $response->end();
         echo "Handshake done\n";
+    }
+
+    private function createRatelimiter()
+    {
+        static::$rateLimiter = new RateLimiter();
     }
 }
