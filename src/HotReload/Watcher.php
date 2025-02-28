@@ -19,11 +19,18 @@ class Watcher
 
     public function start(): void
     {
-        while (!httpServerIsRunning() || !websocketServerIsRunning()) {
+        $serverState = ServerState::getInstance();
+        while (
+            !$serverState->httpServerIsRunning() ||
+            !$serverState->websocketServerIsRunning()
+        ) {
             sleep(2);
         }
 
-        while (httpServerIsRunning() || !websocketServerIsRunning()){
+        while (
+            !$serverState->httpServerIsRunning() ||
+            !$serverState->websocketServerIsRunning()
+        ) {
             foreach ($this->paths as $path) {
                 $this->check(base_path($path));
             }
@@ -47,9 +54,13 @@ class Watcher
             }
             $iterator = [new \SplFileInfo($dir)];
         } else {
-            $dir_iterator = new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::FOLLOW_SYMLINKS);
+            $dir_iterator = new \RecursiveDirectoryIterator(
+                $dir,
+                \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::FOLLOW_SYMLINKS
+            );
             $iterator = new \RecursiveIteratorIterator($dir_iterator);
         }
+
         foreach ($iterator as $file) {
             if (is_dir($file)) {
                 continue;
@@ -66,12 +77,12 @@ class Watcher
                 echo "   \033[1mINFO\033[0m  {$file->getFilename()} has been changed. server reloaded\n";
 
                 $serverState = ServerState::getInstance();
-                if (httpServerIsRunning()) {
+                if ($serverState->httpServerIsRunning()) {
                     posix_kill($serverState->getManagerProcessId(), SIGUSR1);
                     posix_kill($serverState->getMasterProcessId(), SIGUSR1);
                 }
 
-                if (websocketServerIsRunning()) {
+                if ($serverState->websocketServerIsRunning()) {
                     posix_kill($serverState->getWebsocketManagerProcessId(), SIGUSR1);
                     posix_kill($serverState->getWebsocketManagerProcessId(), SIGUSR1);
                 }
