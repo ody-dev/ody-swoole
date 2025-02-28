@@ -1,5 +1,5 @@
 # ody/swoole
-Run ODY framework on a Swoole HTTP server.
+Swoole support classes for ODY framework
 
 ## TODO/roadmap
 
@@ -8,22 +8,6 @@ Run ODY framework on a Swoole HTTP server.
 - [ ] Connection pools (MySQL, Redis,...)
 - [ ] Cache
 - [ ] Documenation
-
-## HTTP server
-### Start a HTTP server
-
-```php
-/**
- * Returns an $app instance, in theory this could be anything 
- * as long as it handles psr7 requests/responses. You could for 
- * example plug a Slim framework instance in here.
- */
-$kernel = Kernel::init();
-
-(new Http())->createServer(
-    $kernel
-)->start(),
-```
 
 ### Websockets
 WIP
