@@ -85,7 +85,7 @@ return [
     'port' => 9501 ,
     'sockType' => SWOOLE_SOCK_TCP,
     'additional' => [
-        'worker_num' => env('APP_WORKER_COUNT' , cpu_count() * 2) ,
+        'worker_num' => env('APP_WORKER_COUNT' , swoole_cpu_num() * 2) ,
         /*
          * log level
          * SWOOLE_LOG_DEBUG (default)
@@ -143,7 +143,7 @@ return [
         Event::ON_REQUEST => [\Ody\Swoole\Websockets\Server::class, 'onRequest'],
     ],
     "additional" => [
-        "worker_num" => env('APP_WEBSOCKET_WORKER_NUM', cpu_count() * 2),
+        "worker_num" => env('APP_WEBSOCKET_WORKER_NUM', swoole_cpu_num() * 2),
     ]
 ];
 ```
