@@ -1,5 +1,5 @@
 # ody/swoole
-Run ODY framework on a Swoole HTTP server.
+Swoole support classes for ODY framework
 
 ## TODO/roadmap
 
