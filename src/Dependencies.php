@@ -3,7 +3,6 @@
 namespace Ody\Swoole;
 
 use Composer\InstalledVersions;
-use Ody\Core\Exception\PackageNotFoundException;
 
 /**
  * @psalm-api
