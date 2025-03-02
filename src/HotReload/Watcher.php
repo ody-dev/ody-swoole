@@ -21,15 +21,13 @@ class Watcher
     {
         $serverState = ServerState::getInstance();
         while (
-            !$serverState->httpServerIsRunning() ||
-            !$serverState->websocketServerIsRunning()
+            !$serverState->httpServerIsRunning()
         ) {
             sleep(2);
         }
 
         while (
-            !$serverState->httpServerIsRunning() ||
-            !$serverState->websocketServerIsRunning()
+            $serverState->httpServerIsRunning()
         ) {
             foreach ($this->paths as $path) {
                 $this->check(base_path($path));
