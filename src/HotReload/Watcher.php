@@ -2,8 +2,7 @@
 
 namespace Ody\Swoole\HotReload;
 
-use Ody\Swoole\ServerState;
-use Ody\Core\Console\Style;
+use Ody\HttpServer\HttpServerState;
 
 /**
  * @psalm-api
@@ -19,7 +18,7 @@ class Watcher
 
     public function start(): void
     {
-        $serverState = ServerState::getInstance();
+        $serverState = HttpServerState::getInstance();
         while (
             !$serverState->httpServerIsRunning()
         ) {
@@ -74,7 +73,7 @@ class Watcher
 
                 echo "   \033[1mINFO\033[0m  {$file->getFilename()} has been changed. server reloaded\n";
 
-                $serverState = ServerState::getInstance();
+                $serverState = HttpServerState::getInstance();
                 if ($serverState->httpServerIsRunning()) {
                     posix_kill($serverState->getManagerProcessId(), SIGUSR1);
                     posix_kill($serverState->getMasterProcessId(), SIGUSR1);
