@@ -8,7 +8,7 @@ class ServerState
     protected readonly string $path;
 
     public function __construct(){
-        $this->path = storagePath('serverState.json');
+        $this->path = storagePath($this->serverType . 'State.json');
     }
 
     /**
