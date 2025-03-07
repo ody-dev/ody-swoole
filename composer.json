@@ -23,7 +23,8 @@
   },
   "autoload": {
     "psr-4": {
-      "Ody\\Swoole\\": "src/"
+      "Ody\\Swoole\\": "src/",
+      "Ody\\Futures\\": "src/Futures"
     },
     "files": [
       "src/Futures/helpers.php",

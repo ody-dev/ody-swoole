@@ -4,8 +4,8 @@ namespace Acme;
 
 use Swoole\Coroutine\Http\Client;
 use function Swoole\Coroutine\run;
-use function Ody\Swoole\Futures\async;
-use function Ody\Swoole\Futures\select;
+use function Ody\Futures\async;
+use function Ody\Futures\select;
 
 require_once __DIR__ . '/../../../vendor/autoload.php';
 

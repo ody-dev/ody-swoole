@@ -3,7 +3,7 @@
 namespace Acme;
 
 use Swoole\Coroutine as Co;
-use function Ody\Swoole\Futures\async;
+use function Ody\Futures\async;
 
 require_once __DIR__ . '/../../../vendor/autoload.php';
 
