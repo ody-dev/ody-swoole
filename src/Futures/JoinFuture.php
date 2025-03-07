@@ -3,6 +3,7 @@
 namespace Ody\Swoole\Futures;
 
 use Swoole\Coroutine\Channel;
+use function Swoole\Coroutine\go;
 
 final class JoinFuture implements FutureInterface
 {

@@ -12,20 +12,31 @@
   "require": {
     "php": ">=8.3",
     "psr/http-message": "^2.0",
-    "psr/http-server-handler": "^1.0",
-    "laminas/laminas-diactoros": "^3.5",
-    "nesbot/carbon": "^3.8"
+    "nesbot/carbon": "^3.8",
+    "cocur/slugify": "^4.6"
   },
   "require-dev": {
     "swoole/ide-helper": "^6.0",
-    "vimeo/psalm": "^5.24",
-    "phpstan/phpstan": "^1.11",
-    "phpunit/phpunit": "^9.6"
+    "phpunit/phpunit": "^9.6",
+    "icanhazstring/composer-unused": "^0.7.12",
+    "laminas/laminas-diactoros": "^3.5"
   },
   "autoload": {
     "psr-4": {
       "Ody\\Swoole\\": "src/"
-    }
+    },
+    "files": [
+      "src/Futures/helpers.php",
+      "src/Declarative/Container.php",
+      "src/Declarative/Swoole.php",
+      "src/Declarative/Response.php",
+      "src/Declarative/Request.php",
+      "src/Declarative/Http.php",
+      "src/Declarative/Route.php",
+      "src/Declarative/Functions.php",
+      "src/Declarative/Json.php",
+      "src/Declarative/Str.php"
+    ]
   },
   "autoload-dev": {
     "psr-4": {
@@ -43,5 +54,10 @@
     "phpcs": "phpcs",
     "phpstan": "phpstan --memory-limit=-1",
     "psalm": "psalm --no-cache"
+  },
+  "config": {
+    "allow-plugins": {
+      "icanhazstring/composer-unused": true
+    }
   }
 }

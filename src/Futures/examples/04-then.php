@@ -3,9 +3,9 @@
 namespace Acme;
 
 use Swoole\Coroutine as Co;
-use function Futures\async;
+use function Ody\Swoole\Futures\async;
 
-require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../../../vendor/autoload.php';
 
 Co\run(function () {
     $future = async(fn() => 2)

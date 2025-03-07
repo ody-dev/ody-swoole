@@ -3,9 +3,9 @@
 namespace Acme;
 
 use Swoole\Coroutine as Co;
-use function Futures\async;
+use function Ody\Swoole\Futures\async;
 
-require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../../../vendor/autoload.php';
 
 Co\run(function () {
     $slow_rand = function (): int {
@@ -17,7 +17,7 @@ Co\run(function () {
     $n2 = async($slow_rand);
     $n3 = async($slow_rand);
 
-    $n = \Futures\join([$n1, $n2, $n3]);
+    $n = \Ody\Swoole\Futures\join([$n1, $n2, $n3]);
 
     print_r($n->await());
 });

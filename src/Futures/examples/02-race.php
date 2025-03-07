@@ -3,11 +3,11 @@
 namespace Acme;
 
 use Swoole\Coroutine\Http\Client;
-use function Co\run;
-use function Futures\async;
-use function Futures\select;
+use function Swoole\Coroutine\run;
+use function Ody\Swoole\Futures\async;
+use function Ody\Swoole\Futures\select;
 
-require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../../../vendor/autoload.php';
 
 run(function () {
     $site1 = async(function () {
