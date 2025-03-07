@@ -2,7 +2,7 @@
 
 namespace Ody\Swoole\HotReload;
 
-use Ody\HttpServer\HttpServerState;
+use Ody\Server\State\HttpServerState;
 
 /**
  * @psalm-api
@@ -77,11 +77,6 @@ class Watcher
                 if ($serverState->httpServerIsRunning()) {
                     posix_kill($serverState->getManagerProcessId(), SIGUSR1);
                     posix_kill($serverState->getMasterProcessId(), SIGUSR1);
-                }
-
-                if ($serverState->websocketServerIsRunning()) {
-                    posix_kill($serverState->getWebsocketManagerProcessId(), SIGUSR1);
-                    posix_kill($serverState->getWebsocketManagerProcessId(), SIGUSR1);
                 }
 
                 break;
