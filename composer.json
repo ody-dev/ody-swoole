@@ -27,16 +27,7 @@
       "Ody\\Futures\\": "src/Futures"
     },
     "files": [
-      "src/Futures/helpers.php",
-      "src/Declarative/Container.php",
-      "src/Declarative/Swoole.php",
-      "src/Declarative/Response.php",
-      "src/Declarative/Request.php",
-      "src/Declarative/Http.php",
-      "src/Declarative/Route.php",
-      "src/Declarative/Functions.php",
-      "src/Declarative/Json.php",
-      "src/Declarative/Str.php"
+      "src/Futures/helpers.php"
     ]
   },
   "autoload-dev": {
