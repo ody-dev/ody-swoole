@@ -18,7 +18,6 @@
   "require-dev": {
     "swoole/ide-helper": "^6.0",
     "phpunit/phpunit": "^9.6",
-    "icanhazstring/composer-unused": "^0.7.12",
     "laminas/laminas-diactoros": "^3.5"
   },
   "autoload": {
