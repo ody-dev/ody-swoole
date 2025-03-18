@@ -11,9 +11,9 @@ class Watcher
 {
     protected array $paths;
 
-    public function __construct(array $paths = null)
+    public function __construct(array $paths)
     {
-        $this->paths = !is_null($paths) ?: config('server.watcher');
+        $this->paths = $paths;
     }
 
     public function start(): void
