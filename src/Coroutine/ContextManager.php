@@ -2,7 +2,6 @@
 
 namespace Ody\Swoole\Coroutine;
 
-use InvalidArgumentException;
 use Swoole\Coroutine;
 
 /**
@@ -72,5 +71,28 @@ class ContextManager
                 unset($context[$key]);
             }
         }
+    }
+
+    /**
+     * Delete a specific key from the current coroutine context
+     *
+     * @param string $key The key to delete
+     * @return void
+     */
+    public static function delete(string $key): void
+    {
+        $context = Coroutine::getContext();
+        unset($context[$key]);
+    }
+
+    /**
+     * Get all keys in the current coroutine context
+     *
+     * @return array List of all keys
+     */
+    public static function getAllKeys(): array
+    {
+        $context = Coroutine::getContext();
+        return array_keys((array)$context);
     }
 }
