@@ -54,4 +54,23 @@ class ContextManager
         $context = Coroutine::getContext(Coroutine::getCid());
         $context[$key] = null;
     }
+
+    /**
+     * Clear all context variables for the current coroutine
+     *
+     * @return void
+     */
+    public static function clear(): void
+    {
+        $cid = Coroutine::getCid();
+        if ($cid !== -1 && $cid !== false) {
+            $context = Coroutine::getContext($cid);
+
+            // Reset all keys in the context
+            foreach ($context as $key => $value) {
+                $context[$key] = null;
+                unset($context[$key]);
+            }
+        }
+    }
 }
