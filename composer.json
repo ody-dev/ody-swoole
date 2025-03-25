@@ -18,24 +18,15 @@
   "require-dev": {
     "swoole/ide-helper": "^6.0",
     "phpunit/phpunit": "^9.6",
-    "icanhazstring/composer-unused": "^0.7.12",
     "laminas/laminas-diactoros": "^3.5"
   },
   "autoload": {
     "psr-4": {
-      "Ody\\Swoole\\": "src/"
+      "Ody\\Swoole\\": "src/",
+      "Ody\\Futures\\": "src/Futures"
     },
     "files": [
-      "src/Futures/helpers.php",
-      "src/Declarative/Container.php",
-      "src/Declarative/Swoole.php",
-      "src/Declarative/Response.php",
-      "src/Declarative/Request.php",
-      "src/Declarative/Http.php",
-      "src/Declarative/Route.php",
-      "src/Declarative/Functions.php",
-      "src/Declarative/Json.php",
-      "src/Declarative/Str.php"
+      "src/Futures/helpers.php"
     ]
   },
   "autoload-dev": {

@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-namespace Ody\Swoole\Futures;
+namespace Ody\Futures;
 
 /**
  * @template T1

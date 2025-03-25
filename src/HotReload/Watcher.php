@@ -2,6 +2,7 @@
 
 namespace Ody\Swoole\HotReload;
 
+use Ody\Logger\StreamLogger;
 use Ody\Server\State\HttpServerState;
 
 /**
@@ -11,9 +12,12 @@ class Watcher
 {
     protected array $paths;
 
-    public function __construct(array $paths = null)
+    protected $logger;
+
+    public function __construct(array $paths)
     {
-        $this->paths = !is_null($paths) ?: config('server.watcher');
+        $this->paths = $paths;
+        $this->logger = new StreamLogger('php://stdout');
     }
 
     public function start(): void
@@ -71,13 +75,13 @@ class Watcher
                     continue;
                 }
 
-                echo "   \033[1mINFO\033[0m  {$file->getFilename()} has been changed. server reloaded\n";
-
                 $serverState = HttpServerState::getInstance();
                 if ($serverState->httpServerIsRunning()) {
                     posix_kill($serverState->getManagerProcessId(), SIGUSR1);
                     posix_kill($serverState->getMasterProcessId(), SIGUSR1);
                 }
+
+                $this->logger->info("{$file->getFilename()} has been changed, server reloaded.");
 
                 break;
             }
